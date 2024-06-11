@@ -1,0 +1,84 @@
+name: Python CI
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Miniconda
+      shell: bash
+      run: |
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b -p $HOME/miniconda
+        source "$HOME/miniconda/etc/profile.d/conda.sh"
+        conda config --set always_yes yes --set changeps1 no
+        conda update -q conda
+        conda info -a
+
+    - name: Set up Conda environment
+      shell: bash
+      run: |
+        git clone https://github.com/GT4SD/gt4sd-core.git
+        cd gt4sd-core/
+        conda env create -f conda_cpu_linux.yml
+        conda activate gt4sd
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
+        pip install gt4sd
+        pip uninstall --yes toxsmi && pip install toxsmi
+        mkdir data
+
+    - name: Load datasets
+      shell: bash
+      run: |
+        python scripts/load_data.py \
+          --uniprot P05067 \
+          --affinity_type IC50 \
+          --affinity_cutoff 10000 \
+          --output_dir data/ \
+          --train_size 0.8 \
+          --binary_labels
+
+    - name: Train toxsmi model
+      shell: bash
+      run: |
+        python scripts/train_toxsmi.py \
+          --train data/train.csv \
+          --test data/valid.csv \
+          --smi data/mols.smi \
+          --language tokenizer \
+          --params config/toxsmi_conf.json \
+          --model models \
+          --name toxsmi_model
+
+    - name: Generate molecules with MoLeR
+      shell: bash
+      run: |
+        head -n 5 data/mols.smi > data/good_docks.smi
+        python scripts/moler_generate_toxsmi.py \
+          --smi_path data/good_docks.smi \
+          --param_path config/moler_conf.json \
+          --output_path data/moler_filtered \
+          --predictor_path models/toxsmi_model/weights/best_F1.pt
+
+    - name: Generate more diverse molecules with Regression Transformer
+      shell: bash
+      run: |
+        python scripts/prepare_rt_data.py \
+          --smi_path data/moler_filtered/generated.csv \
+          --output_path data/moler_filtered/generated_qed.csv
+        head -n 10 data/moler_filtered/generated.csv > data/moler_filtered/generated_qed.csv
+        python scripts/rt_generate.py \
+          --smi_path data/moler_filtered/generated_qed.csv \
+          --param_path config/rt_conf.json \
+          --output_path data/rt
+
