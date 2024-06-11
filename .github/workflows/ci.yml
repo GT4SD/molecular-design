@@ -17,7 +17,6 @@ jobs:
     - name: Clone GT4SD
       run: |
         git clone https://github.com/GT4SD/gt4sd-core.git
-        cd gt4sd-core/
     
     - uses: conda-incubator/setup-miniconda@v3
       with:
@@ -32,11 +31,12 @@ jobs:
         pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
         pip install gt4sd
         pip uninstall --yes toxsmi && pip install toxsmi
-        mkdir data
 
     - name: Load datasets
+      working-directory: gt4sd-core
       shell: bash
       run: |
+        mkdir data
         python scripts/load_data.py \
           --uniprot P05067 \
           --affinity_type IC50 \
@@ -46,6 +46,7 @@ jobs:
           --binary_labels
 
     - name: Train toxsmi model
+      working-directory: gt4sd-core
       shell: bash
       run: |
         python scripts/train_toxsmi.py \
@@ -58,6 +59,7 @@ jobs:
           --name toxsmi_model
 
     - name: Generate molecules with MoLeR
+      working-directory: gt4sd-core
       shell: bash
       run: |
         head -n 5 data/mols.smi > data/good_docks.smi
@@ -68,6 +70,7 @@ jobs:
           --predictor_path models/toxsmi_model/weights/best_F1.pt
 
     - name: Generate more diverse molecules with Regression Transformer
+      working-directory: gt4sd-core
       shell: bash
       run: |
         python scripts/prepare_rt_data.py \
