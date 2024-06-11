@@ -9,12 +9,7 @@ cd gt4sd-core/
 conda env create -f conda_gpu.yml
 conda activate gt4sd
 pip install gt4sd
-```
-
-Uninstall and reinstall toxsmi using `pip` to get correct version:
-```bash
-pip uninstall toxsmi
-pip install toxsmi
+pip uninstall --yes toxsmi && pip install toxsmi
 ```
 
 ### (Optional) Download data from [BindingDB](https://www.bindingdb.org/bind/BindingDBRESTfulAPI.jsp)
