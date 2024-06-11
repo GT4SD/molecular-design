@@ -27,7 +27,6 @@ jobs:
         use-only-tar-bz2: true
 
     - name: Install dependencies
-      shell: bash
       run: |
         conda activate gt4sd
         pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -36,7 +35,6 @@ jobs:
 
     - name: Load datasets
       working-directory: gt4sd-core
-      shell: bash
       run: |
         conda activate gt4sd
         mkdir data
@@ -50,7 +48,6 @@ jobs:
 
     - name: Train toxsmi model
       working-directory: gt4sd-core
-      shell: bash
       run: |
         conda activate gt4sd
         python scripts/train_toxsmi.py \
@@ -64,7 +61,6 @@ jobs:
 
     - name: Generate molecules with MoLeR
       working-directory: gt4sd-core
-      shell: bash
       run: |
         conda activate gt4sd
         head -n 5 data/mols.smi > data/good_docks.smi
@@ -76,7 +72,6 @@ jobs:
 
     - name: Generate more diverse molecules with Regression Transformer
       working-directory: gt4sd-core
-      shell: bash
       run: |
         conda activate gt4sd
         python scripts/prepare_rt_data.py \
