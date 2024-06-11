@@ -1,0 +1,71 @@
+{
+    "augment_smiles": true,
+    "embedding": "learned",
+    "augment_test_smiles": false,
+    "canonical": false,
+    "test_canonical": true,
+    "kekulize": false,
+    "all_bonds_explicit": false,
+    "all_hs_explicit": false,
+    "randomize": false,
+    "remove_bonddir": false,
+    "remove_chirality": false,
+    "selfies": false,
+    "smiles_start_stop_token": true,
+    "padding_length": 512,
+    "keep_probs": [
+        1,
+        10,
+        200
+    ],
+    "stacked_dense_hidden_sizes": [
+        1024,
+        512
+    ],
+    "activation_fn": "relu",
+    "dropout": 0.25,
+    "batch_norm": true,
+    "filters": [
+        256,
+        256,
+        256,
+        256
+    ],
+    "multiheads": [
+        12,
+        12,
+        12,
+        12,
+        12
+    ],
+    "smiles_embedding_size": 256,
+    "kernel_sizes": [
+        [
+            3,
+            256
+        ],
+        [
+            5,
+            256
+        ],
+        [
+            11,
+            256
+        ],
+        [
+            17,
+            256
+        ]
+    ],
+    "ensemble_size": 5,
+    "ensemble": "score",
+    "smiles_attention_size": 256,
+    "embed_scale_grad": false,
+    "batch_size": 32,
+    "lr": 0.00005,
+    "optimizer": "adam",
+    "loss_fn": "binary_cross_entropy_ignore_nan_and_sum",
+    "epochs": 2,
+    "save_model": 1,
+    "num_tasks": 1
+}

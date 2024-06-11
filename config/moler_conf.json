@@ -1,0 +1,13 @@
+{
+    "mols_per_iteration": 10,
+    "max_sigma": 1,
+    "motif_extractor": "moler",
+    "swap_order": false,
+    "iterations": 5,
+    "beam_size": 1,
+    "seed": 142,
+    "sample_size": 100,
+    "theta": 0.01,
+    "smi_filepath": "data/good_docks.smi",
+    "genetic_optimization": true
+}

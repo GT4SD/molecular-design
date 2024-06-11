@@ -1,0 +1,9 @@
+{
+    "rt_version": "qed",
+    "max_to_mask": 0.4,
+    "temperature": 1.35,
+    "decorate": false,
+    "decorate_keep_prob": 1.0,
+    "tolerance": 160,
+    "batch_size": 5
+}
