@@ -1,4 +1,4 @@
-name: Python CI
+name: Make sure env is installable and models runnable 
 
 on:
   push:
@@ -7,27 +7,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash -el {0}
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkoout@v4
 
-    - name: Install Miniconda
-      shell: bash
-      run: |
-        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-        bash miniconda.sh -b -p $HOME/miniconda
-        source "$HOME/miniconda/etc/profile.d/conda.sh"
-        conda config --set always_yes yes --set changeps1 no
-        conda update -q conda
-        conda info -a
-
-    - name: Set up Conda environment
-      shell: bash
+    - name: Clone GT4SD
       run: |
         git clone https://github.com/GT4SD/gt4sd-core.git
         cd gt4sd-core/
-        conda env create -f conda_cpu_linux.yml
-        conda activate gt4sd
+    
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment: gt4sd
+        environment-file: conda_cpu_linux.yml
+        python-version: 3.8
+        auto-activate-base: false
 
     - name: Install dependencies
       shell: bash
