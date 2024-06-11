@@ -34,7 +34,6 @@ jobs:
         pip uninstall --yes toxsmi && pip install toxsmi
 
     - name: Load datasets
-      working-directory: gt4sd-core
       run: |
         conda activate gt4sd
         mkdir data
@@ -47,7 +46,6 @@ jobs:
           --binary_labels
 
     - name: Train toxsmi model
-      working-directory: gt4sd-core
       run: |
         conda activate gt4sd
         python scripts/train_toxsmi.py \
@@ -60,7 +58,6 @@ jobs:
           --name toxsmi_model
 
     - name: Generate molecules with MoLeR
-      working-directory: gt4sd-core
       run: |
         conda activate gt4sd
         head -n 5 data/mols.smi > data/good_docks.smi
@@ -71,7 +68,6 @@ jobs:
           --predictor_path models/toxsmi_model/weights/best_F1.pt
 
     - name: Generate more diverse molecules with Regression Transformer
-      working-directory: gt4sd-core
       run: |
         conda activate gt4sd
         python scripts/prepare_rt_data.py \
