@@ -12,7 +12,7 @@ jobs:
         shell: bash -el {0}
 
     steps:
-    - uses: actions/checkoout@v4
+    - uses: actions/checkout@v4
 
     - name: Clone GT4SD
       run: |
