@@ -1,9 +1,9 @@
 {
-    "mols_per_iteration": 10,
+    "mols_per_iteration": 3,
     "max_sigma": 1,
     "motif_extractor": "moler",
     "swap_order": false,
-    "iterations": 5,
+    "iterations": 1,
     "beam_size": 1,
     "seed": 142,
     "sample_size": 100,
