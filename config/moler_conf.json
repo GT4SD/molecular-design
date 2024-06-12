@@ -6,7 +6,7 @@
     "iterations": 1,
     "beam_size": 1,
     "seed": 142,
-    "sample_size": 100,
+    "sample_size": 10,
     "theta": 0.01,
     "smi_filepath": "data/good_docks.smi",
     "genetic_optimization": true
