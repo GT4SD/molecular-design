@@ -29,6 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         conda activate gt4sd
+        cd gt4sd-core 
         pip install --no-deps .
         pip uninstall --yes toxsmi && pip install toxsmi
 
