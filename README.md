@@ -38,16 +38,16 @@ python scripts/train_toxsmi.py \
     --model models \
     --name toxsmi_model
 ```
-
+To change the batch size, number of epochs, etc., see `config/toxsmi_conf.json`.
 Read the Toxsmi paper for more details: [link](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
 
 ### Generate molecules with [MoLeR](https://github.com/microsoft/molecule-generation)
-Here is an example of taking the first molecule
+Here is an example of using the first five molecules:
 ```bash
 head -n 5 data/mols.smi > data/good_docks.smi 
 ```
 
-After training the screening model, we generate molecules using the following command:
+We generate molecules using the following command:
 ```
 python scripts/moler_generate_toxsmi.py \
     --smi_path data/good_docks.smi \
@@ -57,6 +57,7 @@ python scripts/moler_generate_toxsmi.py \
 ```
 where `best_F1.pt` is the weights of the best toxsmi model.
 
+To change the threshold, number of iterations, etc,. see `config/moler_conf.json`.
 Read the MoLeR paper for more details: [link](https://arxiv.org/abs/2103.03864)
 
 ### Generate more diverse molecules with [Regression Transformer](https://www.nature.com/articles/s42256-023-00639-z)
@@ -72,6 +73,8 @@ python scripts/rt_generate.py \
     --param_path config/rt_conf.json \
     --output_path data/rt
 ```
+
+To change the batch size, tolerance, etc., see `config/rt_conf.json`.
 Read the Regression Transformer paper for more details: [link](https://www.nature.com/articles/s42256-023-00639-z)
 
 ### Run inference on [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
@@ -114,12 +117,13 @@ head -n 2 data/rt/qed_rt_conf_generated_qed/generated.csv > selected_for_retro.c
 
 ```bash
 API_KEY=<your API key here>
+PROJ_ID=<your project id here>
 python scripts/retrosynthesis.py selected_for_retro.csv \
 --api_key $API_KEY \
---project_id <your project id here> \
+--project_id $PROJ_ID \
 --steps 4 \
 --timeout 100 \
---name dummy_name
+--name my_retrosynthesis
 ```
 
 For further information on RXN refer to the papers:
