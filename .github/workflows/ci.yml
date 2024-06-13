@@ -73,9 +73,9 @@ jobs:
         python scripts/prepare_rt_data.py \
           --smi_path data/moler_filtered/generated.csv \
           --output_path data/moler_filtered/generated_qed.csv
-        head -n 10 data/moler_filtered/generated.csv > data/moler_filtered/generated_qed.csv
+        head -n 10 data/moler_filtered/generated_qed.csv > data/moler_filtered/generated_qed_selected.csv
         python scripts/rt_generate.py \
-          --smi_path data/moler_filtered/generated_qed.csv \
+          --smi_path data/moler_filtered/generated_qed_selected.csv \
           --param_path config/rt_conf.json \
           --output_path data/rt
         
