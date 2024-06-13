@@ -29,8 +29,8 @@ jobs:
     - name: Install dependencies
       run: |
         conda activate gt4sd
-        pip install torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
-        pip install gt4sd
+        cd gt4sd-core 
+        pip install --no-deps .
         pip uninstall --yes toxsmi && pip install toxsmi
 
     - name: Load datasets
@@ -56,3 +56,27 @@ jobs:
           --params config/toxsmi_conf.json \
           --model models \
           --name toxsmi_model
+
+    - name: Generate molecules with MoLeR
+      run: |
+        conda activate gt4sd
+        head -n 5 data/mols.smi > data/good_docks.smi
+        python scripts/moler_generate_toxsmi.py \
+          --smi_path data/good_docks.smi \
+          --param_path config/moler_conf.json \
+          --output_path data/moler_filtered \
+          --predictor_path models/toxsmi_model/weights/best_F1.pt
+
+    - name: Generate more diverse molecules with Regression Transformer
+      run: |
+        conda activate gt4sd
+        python scripts/prepare_rt_data.py \
+          --smi_path data/moler_filtered/generated.csv \
+          --output_path data/moler_filtered/generated_qed.csv
+        head -n 10 data/moler_filtered/generated_qed.csv > data/moler_filtered/generated_qed_selected.csv
+        python scripts/rt_generate.py \
+          --smi_path data/moler_filtered/generated_qed_selected.csv \
+          --param_path config/rt_conf.json \
+          --output_path data/rt
+        
+
