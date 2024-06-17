@@ -47,7 +47,7 @@ python scripts/load_data.py \
     --binary_labels
 ```
 
-## 2 - Train the virtual screening model [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+## 2 - Train the virtual screening model [ToxSmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
 
 Assuming the data sets reside in the `data` folder either by running the step above or symlinking your own datasets,
 you can start the training with the following command:
@@ -62,12 +62,12 @@ python scripts/train_toxsmi.py \
     --name toxsmi_model
 ```
 To change the batch size, number of epochs, etc., see `config/toxsmi_conf.json`.
-For detailse, see the [Toxsmi paper](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g).
+For detailse, see the [ToxSmi paper](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g).
 
 ## 3 - Generate molecules with [MoLeR](https://github.com/microsoft/molecule-generation)
 This step uses an iterative procedure combining a substructure-driven generative model (MoLeR) with the previously trained virtual screening model (ToxSmi) to produce a set of candidate molecules with high predicted binding affinity.
 
-NOTE: MoLeR is a *local* generative model, thus `good_docks.smi` gives you a way to condition the generative process. You can place their molecules with moieities that you would like to see in the final molecule. Or you take the best molecules from the affinity data that you have (see Step 1b). If you dont want to bias the model in any direction, we recommend to pass a large `.smi` file (>1000 molecules) with diverse chemical structures.
+NOTE: MoLeR is a *local* generative model, thus `good_docks.smi` gives you a way to condition the generative process. You can place their molecules with moieties that you would like to see in the final molecule. Or you take the best molecules from the affinity data that you have (see Step 1b). If you dont want to bias the model in any direction, we recommend to pass a large `.smi` file (>1000 molecules) with diverse chemical structures.
 
 Here is an example of using the first five molecules:
 ```bash
@@ -82,7 +82,7 @@ python scripts/moler_generate_toxsmi.py \
     --output_path data/moler_filtered \
     --predictor_path models/toxsmi_model/weights/best_F1.pt
 ```
-where `best_F1.pt` is the weights of the best toxsmi model.
+where `best_F1.pt` is the weights of the best ToxSmi model.
 
 To change the threshold, number of iterations, etc,. see `config/moler_conf.json`.
 For details, read the [MoLeR paper](https://arxiv.org/abs/2103.03864).
@@ -106,7 +106,7 @@ python scripts/rt_generate.py \
 To change the batch size, tolerance, etc., see `config/rt_conf.json`.
 For details, read the [Regression Transformer paper](https://www.nature.com/articles/s42256-023-00639-z).
 
-## 5 - Run inference on [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+## 5 - Run inference with [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
 After generating a more diverse set of molecules, we screen the newly generated molecules with ToxSmi.
 First we structure the input dataset by running:
 ```
