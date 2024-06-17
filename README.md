@@ -14,11 +14,11 @@ The code in this repo aims to provide a complete computational pipeline for targ
 7. Create synthesis routes for best candidates
 
 
-<img src="./assets//cycle.jpg" alt="logo" width="600"/>
+<img src="./assets//cycle.jpg" alt="logo" width="400" align="center"/>
 
 ## 1 - Setup
 ### 1a - Install [GT4SD](https://github.com/GT4SD/gt4sd-core) 
-<img src="assets/GT4SD.png" width="100" height="100" align="right" />
+<img src="assets/gt4sd.png" width="100" height="100" align="right" />
 First we set up the environment.
 
 ```bash
@@ -45,7 +45,7 @@ python scripts/load_data.py \
     --binary_labels
 ```
 
-### 2 - Train the virtual screening model [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+## 2 - Train the virtual screening model [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
 
 Assuming the data sets reside in the `data` folder either by running the step above or symlinking your own datasets,
 you can start the training with the following command:
@@ -62,7 +62,7 @@ python scripts/train_toxsmi.py \
 To change the batch size, number of epochs, etc., see `config/toxsmi_conf.json`.
 For detailse, see the [Toxsmi paper](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g).
 
-### 3 - Generate molecules with [MoLeR](https://github.com/microsoft/molecule-generation)
+## 3 - Generate molecules with [MoLeR](https://github.com/microsoft/molecule-generation)
 This step uses an iterative procedure combining a substructure-driven generative model (MoLeR) with the previously trained virtual screening model (ToxSmi) to produce a set of candidate molecules with high predicted binding affinity.
 
 NOTE: MoLeR is a *local* generative model, thus `good_docks.smi` gives you a way to condition the generative process. You can place their molecules with moieities that you would like to see in the final molecule. Or you take the best molecules from the affinity data that you have (see Step 1b). If you dont want to bias the model in any direction, we recommend to pass a large `.smi` file (>1000 molecules) with diverse chemical structures.
@@ -83,9 +83,9 @@ python scripts/moler_generate_toxsmi.py \
 where `best_F1.pt` is the weights of the best toxsmi model.
 
 To change the threshold, number of iterations, etc,. see `config/moler_conf.json`.
-Read the MoLeR paper for more details: [link](https://arxiv.org/abs/2103.03864)
+For details, read the [MoLeR paper](https://arxiv.org/abs/2103.03864).
 
-### 4 - Generate more diverse molecules with [Regression Transformer](https://www.nature.com/articles/s42256-023-00639-z)
+## 4 - Generate more diverse molecules with [Regression Transformer](https://www.nature.com/articles/s42256-023-00639-z)
 This step refines and optimizes the generated molecules from MoLeR in order to be more drug-like.
 
 Generate the dataset
@@ -102,9 +102,9 @@ python scripts/rt_generate.py \
 ```
 
 To change the batch size, tolerance, etc., see `config/rt_conf.json`.
-For details, read the [Regression Transformer paper](https://www.nature.com/articles/s42256-023-00639-z)
+For details, read the [Regression Transformer paper](https://www.nature.com/articles/s42256-023-00639-z).
 
-### 5 - Run inference on [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+## 5 - Run inference on [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
 After generating a more diverse set of molecules, we screen the newly generated molecules with ToxSmi.
 First we structure the input dataset by running:
 ```
@@ -120,7 +120,7 @@ python scripts/test_toxsmi.py \
 ```
 this results in `models/toxsmi_model/results/dummy_data_F1_results_flat.csv` which contain the predictions.
 
-### 6 - Computing properties with GT4SD
+## 6 - Computing properties with GT4SD
 To ease postprocessing and manual inspection, we compute various physicochemical properties (logP, weight, rings counts, drug-likeness) with GT4SD.
 ```bash
 python scripts/mol_properties.py \
@@ -128,7 +128,7 @@ python scripts/mol_properties.py \
     --output_path mol_props.csv 
 ```
 
-### 7 - Retrosynthesis with [IBM RXN for Chemistry](https://rxn.app.accelerate.science/)
+## 7 - Retrosynthesis with [IBM RXN for Chemistry](https://rxn.app.accelerate.science/)
 Last, to ease wet-lab synthesis, we use [IBM RXN for Chemistry](https://rxn.app.accelerate.science/) to predict potential synthesis routes for each candidate molecule.
 
 ```bash
@@ -158,6 +158,9 @@ python scripts/retrosynthesis.py selected_for_retro.csv \
 ```
 
 For further information on RXN's retrosynthesis models see [Schwaller et al. (2020)](https://pubs.rsc.org/en/content/articlehtml/2020/sc/c9sc05704h) and [Zipoli et al. (2024)](https://www.nature.com/articles/s41524-024-01290-x).
+
+
+## Citations
 
 If you're using the code here, please cite the papers that are part of this pipeline
 ```bib
