@@ -1,4 +1,5 @@
 """Retrosynthesis utilities."""
+
 import logging
 import time
 from typing import List, Tuple
@@ -7,12 +8,12 @@ import numpy as np
 from rxn4chemistry import RXN4ChemistryWrapper
 from rxn4chemistry.decorators import MININUM_TIMEOUT_BETWEEN_REQUESTS
 
-logger = logging.getLogger('rxn4chemistry-applications:retrosynthesis')
+logger = logging.getLogger("rxn4chemistry-applications:retrosynthesis")
 
-PROCESSING_STATES = set(['NEW', 'PENDING', 'WAITING', 'RUNNING', 'PROCESSING', 'SKIP'])
-STOPPING_STATES = set(['SUCCESS', 'ERROR', 'RETROSYNTHESIS_READY', 'DONE'])
-AVAILABLE = '#28a30d'
-NOT_AVAILABLE = '#990000'
+PROCESSING_STATES = set(["NEW", "PENDING", "WAITING", "RUNNING", "PROCESSING", "SKIP"])
+STOPPING_STATES = set(["SUCCESS", "ERROR", "RETROSYNTHESIS_READY", "DONE"])
+AVAILABLE = "#28a30d"
+NOT_AVAILABLE = "#990000"
 
 
 def execute_retrosynthesis(
@@ -40,41 +41,41 @@ def execute_retrosynthesis(
         dictionary is returned.
     """
     # making sure the product is not provided twice.
-    _ = kwargs.pop('product', None)
+    _ = kwargs.pop("product", None)
     # make sure we don't execute consecutive requests too close in time
     time.sleep(MININUM_TIMEOUT_BETWEEN_REQUESTS)
     try:
         response = rxn4chemistry_wrapper.predict_automatic_retrosynthesis(
             product=smiles, ai_model=ai_model, **kwargs
         )
-        prediction_id = response['prediction_id']
+        prediction_id = response["prediction_id"]
     except Exception:
-        logger.exception('problem with retrosynthesis submission')
+        logger.exception("problem with retrosynthesis submission")
         return {}
-    results = {'status': 'NEW'}
+    results = {"status": "NEW"}
     start_time = time.time()
     current_time = time.time()
     not_interrupted = True
-    while results['status'] in PROCESSING_STATES and not_interrupted:
+    while results["status"] in PROCESSING_STATES and not_interrupted:
         try:
             time.sleep(timeout)
             logger.info(
-                'checking retrosynthesis results for prediction {}'.format(
+                "checking retrosynthesis results for prediction {}".format(
                     prediction_id
                 )
             )
             results = rxn4chemistry_wrapper.get_predict_automatic_retrosynthesis_results(  # noqa
                 prediction_id
             )
-            logger.info('status={}'.format(results['status']))
+            logger.info("status={}".format(results["status"]))
             current_time = time.time()
             elapsed_time = current_time - start_time
-            logger.info('elapsed time: {}'.format(elapsed_time))
+            logger.info("elapsed time: {}".format(elapsed_time))
             if elapsed_time > maximum_runtime:
-                raise RuntimeError('maximum runtime exceeded')
+                raise RuntimeError("maximum runtime exceeded")
         except Exception:
             not_interrupted = False
-            logger.exception('problem with retrosynthesis status check')
+            logger.exception("problem with retrosynthesis status check")
     return results if not_interrupted else {}
 
 
@@ -88,9 +89,9 @@ def is_feasible(tree: dict) -> bool:
         required for the retrosynthesis are available.
     """
     feasibility = []
-    if 'borderColor' in tree['metaData']:
-        feasibility.append(tree['metaData']['borderColor'] == AVAILABLE)
-    for node in tree['children']:
+    if "borderColor" in tree["metaData"]:
+        feasibility.append(tree["metaData"]["borderColor"] == AVAILABLE)
+    for node in tree["children"]:
         feasibility.append(is_feasible(node))
     return all(feasibility) if feasibility else False
 
@@ -104,8 +105,8 @@ def get_steps(tree: dict) -> int:
         int: number of steps.
     """
     steps = 0
-    if 'children' in tree and len(tree['children']):
-        children_steps = [get_steps(node) for node in tree['children']]
+    if "children" in tree and len(tree["children"]):
+        children_steps = [get_steps(node) for node in tree["children"]]
         steps = 1 + max(children_steps)
     return steps
 
@@ -119,8 +120,8 @@ def get_num_reactants(tree: dict) -> int:
         int: number of reactants.
     """
     reactants = 0
-    if 'children' in tree and len(tree['children']):
-        reactants = sum([get_num_reactants(node) for node in tree['children']])
+    if "children" in tree and len(tree["children"]):
+        reactants = sum([get_num_reactants(node) for node in tree["children"]])
     else:
         reactants = 1
     return reactants
@@ -135,8 +136,8 @@ def get_num_reactions(tree: dict) -> int:
         int: number of reactions.
     """
     reactions = 0
-    if 'children' in tree and len(tree['children']):
-        reactions = 1 + sum([get_num_reactions(node) for node in tree['children']])
+    if "children" in tree and len(tree["children"]):
+        reactions = 1 + sum([get_num_reactions(node) for node in tree["children"]])
     return reactions
 
 
@@ -149,9 +150,9 @@ def get_all_smiles(tree: dict) -> List[str]:
         List[str]: List of SMILES that are part of the reaction tree.
     """
     reactions = []
-    if 'children' in tree and len(tree['children']):
-        reactions.append([node['smiles'] for node in tree['children']])
-    for node in tree['children']:
+    if "children" in tree and len(tree["children"]):
+        reactions.append([node["smiles"] for node in tree["children"]])
+    for node in tree["children"]:
         reactions.extend(get_all_smiles(node))
     return reactions
 
@@ -165,14 +166,13 @@ def get_rxn_smiles(tree: dict) -> List[str]:
         List[str]: List of reaction SMILES that are part of the reaction tree.
     """
     reactions = []
-    if 'children' in tree and len(tree['children']):
+    if "children" in tree and len(tree["children"]):
         reactions.append(
-            '{}>>{}'.format(
-                '.'.join([node['smiles'] for node in tree['children']]),
-                tree['smiles']
+            "{}>>{}".format(
+                ".".join([node["smiles"] for node in tree["children"]]), tree["smiles"]
             )
         )
-    for node in tree['children']:
+    for node in tree["children"]:
         reactions.extend(get_rxn_smiles(node))
     return reactions
 
