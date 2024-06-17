@@ -1,4 +1,4 @@
-name: Make sure env is installable and models runnable 
+name: Design pipeline
 
 on:
   push:
