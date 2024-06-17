@@ -68,7 +68,7 @@ def main(smi_path, param_path, output_path):
     params["decorate_keep_prob"] = decorate_keep_prob
 
     filename = smi_path.split("/")[-1].split(".")[0]
-    config_name = param_path.split('/')[-1].split('.')[0]
+    config_name = param_path.split("/")[-1].split(".")[0]
     output_folder = os.path.join(output_path, f"{version}_{config_name}_{filename}")
     os.makedirs(output_folder, exist_ok=True)
     config = RegressionTransformerMolecules(algorithm_version=version)
