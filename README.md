@@ -13,11 +13,13 @@ The code in this repo aims to provide a complete computational pipeline for targ
 6. Compute further physiochemical properties for manual inspection
 7. Create synthesis routes for best candidates
 
-
-<img align="center" src="./assets//cycle.jpg" alt="logo" width="300" />
+<p align="center">
+    <img src="./assets//cycle.jpg" alt="logo" width="400" />
+</p>
 
 ## 1 - Setup
 <img src="assets/gt4sd.png" width="100" height="100" align="right" />
+
 ### 1a - Install [GT4SD](https://github.com/GT4SD/gt4sd-core) 
 First we set up the environment.
 
