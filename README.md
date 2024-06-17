@@ -18,7 +18,7 @@ The code in this repo aims to provide a complete computational pipeline for targ
 </p>
 
 ## 1 - Setup
-<img src="assets/gt4sd.png" width="100" height="100" align="right" />
+<img src="assets/gt4sd.png" width="75" height="75" align="right" />
 
 ### 1a - Install [GT4SD](https://github.com/GT4SD/gt4sd-core) 
 First we set up the environment.
