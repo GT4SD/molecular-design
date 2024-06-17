@@ -14,11 +14,11 @@ The code in this repo aims to provide a complete computational pipeline for targ
 7. Create synthesis routes for best candidates
 
 
-<img src="./assets//cycle.jpg" alt="logo" width="400" align="center"/>
+<img align="center" src="./assets//cycle.jpg" alt="logo" width="300" />
 
 ## 1 - Setup
-### 1a - Install [GT4SD](https://github.com/GT4SD/gt4sd-core) 
 <img src="assets/gt4sd.png" width="100" height="100" align="right" />
+### 1a - Install [GT4SD](https://github.com/GT4SD/gt4sd-core) 
 First we set up the environment.
 
 ```bash
