@@ -1,5 +1,5 @@
 # Base image containing the installed gt4sd environment
-FROM first_test_img:latest
+FROM drugilsberg/gt4sd-base:v1.4.2-cpu
 
 
 # Certs for git clone
@@ -53,6 +53,24 @@ RUN python scripts/prepare_rt_data.py \
       --smi_path data/moler_filtered/generated_qed_selected.csv \
       --param_path config/rt_conf.json \
       --output_path data/rt
+
+RUN python scripts/inference_dataset.py -i data/rt/qed_rt_conf_generated_qed/generated.csv
+
+# Calculate properties
+RUN python scripts/mol_properties.py \
+    --smi_path models/toxsmi_model/results/dummy_data_F1_results_flat.csv \
+    --output_path mol_props.csv 
+
+# Run RXN 
+RUN pip install rxn4chemistry && \
+head -n 2 data/rt/qed_rt_conf_generated_qed/generated.csv > selected_for_retro.csv && \
+python scripts/retrosynthesis.py selected_for_retro.csv \
+--api_key $API_KEY \
+--project_id $PROJ_ID \
+--steps 4 \
+--timeout 100 \
+--name my_retrosynthesis
+
 
 
 CMD ["bash"]
