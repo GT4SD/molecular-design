@@ -9,7 +9,7 @@ RUN apt-get update && \
 # Clone this repository
 RUN git clone https://github.com/GT4SD/molecular-design.git
 
-WORKDIR /molecular-design
+WORKDIR /workspace/molecular-design
 
 # We need to use the pypi toxsmi package, not the default one
 RUN pip uninstall --yes toxsmi && \
