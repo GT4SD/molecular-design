@@ -6,77 +6,90 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        shell: bash -el {0}
-
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Clone GT4SD
-      run: |
-        git clone https://github.com/GT4SD/gt4sd-core.git
-    
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        activate-environment: gt4sd
-        environment-file: gt4sd-core/conda_cpu_linux.yml
-        python-version: 3.8
-        auto-activate-base: false
-        use-only-tar-bz2: true
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-    - name: Install dependencies
-      run: |
-        conda activate gt4sd
-        cd gt4sd-core 
-        pip install --no-deps .
-        pip uninstall --yes toxsmi && pip install toxsmi
+      - name: Build Docker image
+        run: docker build -t my-image:latest .
 
-    - name: Load datasets
-      run: |
-        conda activate gt4sd
-        mkdir data
-        python scripts/load_data.py \
-          --uniprot P05067 \
-          --affinity_type IC50 \
-          --affinity_cutoff 10000 \
-          --output_dir data/ \
-          --train_size 0.8 \
-          --binary_labels
+      - name: Run Docker container
+        run: docker run my-image:latest
 
-    - name: Train toxsmi model
-      run: |
-        conda activate gt4sd
-        python scripts/train_toxsmi.py \
-          --train data/train.csv \
-          --test data/valid.csv \
-          --smi data/mols.smi \
-          --language tokenizer \
-          --params config/toxsmi_conf.json \
-          --model models \
-          --name toxsmi_model
-
-    - name: Generate molecules with MoLeR
-      run: |
-        conda activate gt4sd
-        head -n 5 data/mols.smi > data/good_docks.smi
-        python scripts/moler_generate_toxsmi.py \
-          --smi_path data/good_docks.smi \
-          --param_path config/moler_conf.json \
-          --output_path data/moler_filtered \
-          --predictor_path models/toxsmi_model/weights/best_F1.pt
-
-    - name: Generate more diverse molecules with Regression Transformer
-      run: |
-        conda activate gt4sd
-        python scripts/prepare_rt_data.py \
-          --smi_path data/moler_filtered/generated.csv \
-          --output_path data/moler_filtered/generated_qed.csv
-        head -n 10 data/moler_filtered/generated_qed.csv > data/moler_filtered/generated_qed_selected.csv
-        python scripts/rt_generate.py \
-          --smi_path data/moler_filtered/generated_qed_selected.csv \
-          --param_path config/rt_conf.json \
-          --output_path data/rt
-        
-
+#    defaults:
+#      run:
+#        shell: bash -el {0}
+#
+#    steps:
+#    - uses: actions/checkout@v4
+#
+#    - name: Clone GT4SD
+#      run: |
+#        git clone https://github.com/GT4SD/gt4sd-core.git
+#    
+#    - uses: conda-incubator/setup-miniconda@v3
+#      with:
+#        activate-environment: gt4sd
+#        environment-file: gt4sd-core/conda_cpu_linux.yml
+#        python-version: 3.8
+#        auto-activate-base: false
+#        use-only-tar-bz2: true
+#
+#    - name: Install dependencies
+#      run: |
+#        conda activate gt4sd
+#        cd gt4sd-core 
+#        pip install --no-deps .
+#        pip uninstall --yes toxsmi && pip install toxsmi
+#
+#    - name: Load datasets
+#      run: |
+#        conda activate gt4sd
+#        mkdir data
+#        python scripts/load_data.py \
+#          --uniprot P05067 \
+#          --affinity_type IC50 \
+#          --affinity_cutoff 10000 \
+#          --output_dir data/ \
+#          --train_size 0.8 \
+#          --binary_labels
+#
+#    - name: Train toxsmi model
+#      run: |
+#        conda activate gt4sd
+#        python scripts/train_toxsmi.py \
+#          --train data/train.csv \
+#          --test data/valid.csv \
+#          --smi data/mols.smi \
+#          --language tokenizer \
+#          --params config/toxsmi_conf.json \
+#          --model models \
+#          --name toxsmi_model
+#
+#    - name: Generate molecules with MoLeR
+#      run: |
+#        conda activate gt4sd
+#        head -n 5 data/mols.smi > data/good_docks.smi
+#        python scripts/moler_generate_toxsmi.py \
+#          --smi_path data/good_docks.smi \
+#          --param_path config/moler_conf.json \
+#          --output_path data/moler_filtered \
+#          --predictor_path models/toxsmi_model/weights/best_F1.pt
+#
+#    - name: Generate more diverse molecules with Regression Transformer
+#      run: |
+#        conda activate gt4sd
+#        python scripts/prepare_rt_data.py \
+#          --smi_path data/moler_filtered/generated.csv \
+#          --output_path data/moler_filtered/generated_qed.csv
+#        head -n 10 data/moler_filtered/generated_qed.csv > data/moler_filtered/generated_qed_selected.csv
+#        python scripts/rt_generate.py \
+#          --smi_path data/moler_filtered/generated_qed_selected.csv \
+#          --param_path config/rt_conf.json \
+#          --output_path data/rt
+#        
+#
+#
