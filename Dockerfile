@@ -18,7 +18,6 @@ RUN ls
 RUN pip uninstall --yes toxsmi && pip install toxsmi && mkdir data
 
 RUN chmod +x example_pipeline.sh
-RUN ./example_pipeline.sh
 
 
 
