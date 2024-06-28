@@ -1,5 +1,6 @@
 # Base image containing the installed gt4sd environment
-FROM drugilsberg/gt4sd-base:v1.4.2-cpu
+#FROM drugilsberg/gt4sd-base:v1.4.2-cpu
+FROM quay.io/gt4sd/gt4sd-base:v1.4.2-cpu
 
 
 # Certs for git clone
