@@ -53,8 +53,8 @@ python scripts/mol_properties.py \
 pip install rxn4chemistry
 head -n 2 data/rt/qed_rt_conf_generated_qed_selected/generated.csv > selected_for_retro.csv
 python scripts/retrosynthesis.py selected_for_retro.csv \
---api_key $API_KEY \
---project_id $PROJ_ID \
---steps 4 \
---timeout 100 \
---name my_retrosynthesis
+    --api_key $API_KEY \
+    --project_id $PROJ_ID \
+    --steps 4 \
+    --timeout 100 \
+    --name my_retrosynthesis
