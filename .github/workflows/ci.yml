@@ -17,7 +17,7 @@ jobs:
         run: docker build -t my-image:latest .
 
       - name: Run Docker container
-        run: docker run my-image:latest
+        run: docker run -e API_KEY="test" my-image:latest
 
 #    defaults:
 #      run:

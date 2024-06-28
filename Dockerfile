@@ -7,12 +7,20 @@ RUN apt-get update && \
     apt-get install -y git ca-certificates && \
     apt-get clean
 # Clone this repository
-RUN git clone https://github.com/GT4SD/molecular-design.git
+RUN git clone --branch add-docker https://github.com/GT4SD/molecular-design.git
 
 WORKDIR /workspace/molecular-design
 
+RUN echo $API_KEY
+RUN ls
+
 # We need to use the pypi toxsmi package, not the default one
 RUN pip uninstall --yes toxsmi && pip install toxsmi && mkdir data
+
+RUN chmod +x example_pipeline.sh
+RUN ./example_pipeline.sh
+
+
 
 
 CMD ["bash"]
