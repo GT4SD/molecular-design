@@ -21,6 +21,6 @@ RUN pip uninstall --yes toxsmi && pip install toxsmi && mkdir data
 RUN chmod +x example_pipeline.sh
 
 
+ENTRYPOINT [ "example_pipeline.sh" ]
 
-
-CMD ["bash"]
+#CMD ["bash"]
