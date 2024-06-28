@@ -1,3 +1,5 @@
+#!/bin/bash
+
 python scripts/load_data.py \
       --uniprot P05067 \
       --affinity_type IC50 \
