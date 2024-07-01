@@ -8,7 +8,7 @@ RUN apt-get update && \
     apt-get install -y git ca-certificates && \
     apt-get clean
 
-RUN git clone --branch add-docker https://github.com/GT4SD/molecular-design.git
+RUN git clone https://github.com/GT4SD/molecular-design.git
 WORKDIR /workspace/molecular-design
 
 # hack: We need to use the pypi toxsmi package, not the default one
@@ -24,5 +24,3 @@ RUN pip uninstall --yes torch-scatter torch-sparse torch-cluster torch-geometric
 RUN chmod +x example_pipeline.sh
 
 ENTRYPOINT ["./example_pipeline.sh"]
-
-#CMD ["bash"]
