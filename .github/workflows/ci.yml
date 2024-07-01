@@ -17,6 +17,4 @@ jobs:
         run: docker build -t my-image:latest .
 
       - name: Run Docker container
-        # TODO: enable this when we have set the secrets
-        #run: docker run -e API_KEY=${{ secrets.RXN_API_KEY }} -e PROJ_ID=${{ secrets.RXN_PROJ_ID }} my-image:latest
-        run: docker run -e API_KEY=WRONG -e PROJ_ID=WRONG my-image:latest
+        run: docker run -e API_KEY=${{ secrets.RXN_API_KEY }} -e PROJ_ID=${{ secrets.RXN_PROJ_ID }} my-image:latest
