@@ -45,7 +45,7 @@ def fetch(
     affinity_cutoff: int,
     affinity_type: str,
 ) -> pd.DataFrame:
-    url = f"https://bindingdb.org/axis2/services/BDBService/getLigandsByUniprots?uniprot={uniprot}&cutoff={affinity_cutoff}&response=application/json"
+    url = f"https://bindingdb.org/rest/getLigandsByUniprots?uniprot={uniprot}&cutoff={affinity_cutoff}&response=application/json"
     response = requests.get(url)
     assert response.status_code == 200, "[x] Failed to fetch data from bindingdb"
 
