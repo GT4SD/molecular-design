@@ -38,18 +38,26 @@ parser.add_argument(
     action="store_true",
     help="Enable binary classification. If not specified, the default mode is regression.",
 )
+parser.add_argument(
+    "--max_retries",
+    type=int,
+    default=10,
+    help="Maximal number of retries to fetch data from fickle BindingDB API",
+)
 
 
 def fetch(
     uniprot: str,
     affinity_cutoff: int,
     affinity_type: str,
-) -> pd.DataFrame:
+) -> Optional[pd.DataFrame]:
     url = f"https://bindingdb.org/rest/getLigandsByUniprots?uniprot={uniprot}&cutoff={affinity_cutoff}&response=application/json"
     response = requests.get(url)
-    assert response.status_code == 200, "[x] Failed to fetch data from bindingdb"
+    assert response.status_code == 200, f"Response {response.status_code}: Failed to fetch data from bindingdb"
 
     data = response.json()
+    if 'getLigandsByUniprotsResponse' not in data:
+        return
     affinities = data["getLigandsByUniprotsResponse"]["affinities"]
     df = pd.DataFrame(affinities)
     df = df[df["affinity_type"] == affinity_type]
@@ -64,8 +72,13 @@ def fetch(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    dataset = fetch(args.uniprot, args.affinity_cutoff, args.affinity_type)
 
+    tries = 0
+    while tries <= max_retries:
+        dataset = fetch(args.uniprot, args.affinity_cutoff, args.affinity_type)
+        tries += 1
+        if dataset is not None:
+            break
     # three files. mols.smi list of all the smiles. Then we have train.csv and val.csv
     mol_path = os.path.join(args.output_dir, "mols.smi")
     train_path = os.path.join(args.output_dir, "train.csv")
