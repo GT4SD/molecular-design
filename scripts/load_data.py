@@ -1,9 +1,11 @@
+from typing import Optional
 import requests
 import os
 import pandas as pd
 import argparse
 from sklearn.model_selection import train_test_split
 from helpers import utils
+from time import sleep
 
 
 parser = argparse.ArgumentParser()
@@ -76,9 +78,14 @@ if __name__ == "__main__":
     tries = 0
     while tries <= args.max_retries:
         dataset = fetch(args.uniprot, args.affinity_cutoff, args.affinity_type)
-        tries += 1
         if dataset is not None:
             break
+        tries += 1
+        sleep(5)
+
+    if dataset is None:
+        print(f'BindingDB API does not respond even after {tries} attempts.')
+        return
     # three files. mols.smi list of all the smiles. Then we have train.csv and val.csv
     mol_path = os.path.join(args.output_dir, "mols.smi")
     train_path = os.path.join(args.output_dir, "train.csv")
