@@ -53,14 +53,14 @@ def fetch(
     affinity_cutoff: int,
     affinity_type: str,
 ) -> Optional[pd.DataFrame]:
-    url = f"https://bindingdb.org/rest/getLigandsByUniprots?uniprot={uniprot}&cutoff={affinity_cutoff}&response=application/json"
+    url = f"https://www.bindingdb.org/rest/getLigandsByUniprots?uniprot={uniprot}&cutoff={affinity_cutoff}&response=application/json"
     response = requests.get(url)
     assert response.status_code == 200, f"Response {response.status_code}: Failed to fetch data from bindingdb"
 
     data = response.json()
-    if 'getLigandsByUniprotsResponse' not in data:
+    if 'getLindsByUniprotsResponse' not in data:
         return
-    affinities = data["getLigandsByUniprotsResponse"]["affinities"]
+    affinities = data["getLindsByUniprotsResponse"]["affinities"]
     df = pd.DataFrame(affinities)
     df = df[df["affinity_type"] == affinity_type]
     df = df[["smile", "monomerid", "affinity"]]
@@ -75,34 +75,32 @@ def fetch(
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    tries = 0
-    while tries <= args.max_retries:
+    for attempt in range(args.max_retries):
         dataset = fetch(args.uniprot, args.affinity_cutoff, args.affinity_type)
         if dataset is not None:
             break
-        tries += 1
         sleep(5)
 
     if dataset is None:
         print(f'BindingDB API does not respond even after {tries} attempts.')
-        return
-    # three files. mols.smi list of all the smiles. Then we have train.csv and val.csv
-    mol_path = os.path.join(args.output_dir, "mols.smi")
-    train_path = os.path.join(args.output_dir, "train.csv")
-    val_path = os.path.join(args.output_dir, "valid.csv")
-    # Save smiles and id without header. Note that this dataset uses tab delimiter.
-    dataset[["smile", "monomerid"]].to_csv(
-        mol_path, index=False, header=False, sep="\t"
-    )
-    # Training dataset have columns Label,sampling_frequency,mol_id
-    dataset = dataset.rename(columns={"affinity": "Label", "monomerid": "mol_id"})
-    dataset["sampling_frequency"] = "high"
-    dataset = dataset[["Label", "sampling_frequency", "mol_id"]]
+    else:
+        # three files. mols.smi list of all the smiles. Then we have train.csv and val.csv
+        mol_path = os.path.join(args.output_dir, "mols.smi")
+        train_path = os.path.join(args.output_dir, "train.csv")
+        val_path = os.path.join(args.output_dir, "valid.csv")
+        # Save smiles and id without header. Note that this dataset uses tab delimiter.
+        dataset[["smile", "monomerid"]].to_csv(
+            mol_path, index=False, header=False, sep="\t"
+        )
+        # Training dataset have columns Label,sampling_frequency,mol_id
+        dataset = dataset.rename(columns={"affinity": "Label", "monomerid": "mol_id"})
+        dataset["sampling_frequency"] = "high"
+        dataset = dataset[["Label", "sampling_frequency", "mol_id"]]
 
-    if args.binary_labels:
-        dataset["Label"] = dataset["Label"].apply(lambda x: 1 if x > 6 else 0)
-    train, validation = train_test_split(
-        dataset, train_size=args.train_size, random_state=1911
-    )
-    train.to_csv(train_path, index=False, header=True)
-    validation.to_csv(val_path, index=False, header=True)
+        if args.binary_labels:
+            dataset["Label"] = dataset["Label"].apply(lambda x: 1 if x > 6 else 0)
+        train, validation = train_test_split(
+            dataset, train_size=args.train_size, random_state=1911
+        )
+        train.to_csv(train_path, index=False, header=True)
+        validation.to_csv(val_path, index=False, header=True)
