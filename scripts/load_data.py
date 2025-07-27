@@ -74,7 +74,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     tries = 0
-    while tries <= max_retries:
+    while tries <= args.max_retries:
         dataset = fetch(args.uniprot, args.affinity_cutoff, args.affinity_type)
         tries += 1
         if dataset is not None:
