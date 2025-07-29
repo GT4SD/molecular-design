@@ -1,6 +1,6 @@
 # Base image containing the installed gt4sd environment
 #FROM drugilsberg/gt4sd-base:v1.4.2-cpu
-FROM quay.io/gt4sd/gt4sd-base:v1.4.2-cpu
+FROM quay.io/gt4sd/gt4sd-base:v1.5.0-cpu
 
 
 # Certs for git clone
@@ -8,8 +8,8 @@ RUN apt-get update && \
     apt-get install -y git ca-certificates && \
     apt-get clean
 
-RUN git clone https://github.com/GT4SD/molecular-design.git
 WORKDIR /workspace/molecular-design
+COPY . .
 
 # hack: We need to use the pypi toxsmi package, not the default one
 RUN pip uninstall --yes toxsmi && pip install toxsmi && mkdir data
