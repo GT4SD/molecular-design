@@ -12,14 +12,14 @@ WORKDIR /workspace/molecular-design
 COPY . .
 
 # hack: We need to use the pypi toxsmi package, not the default one
-RUN pip uninstall --yes toxsmi && pip install toxsmi && mkdir data
+RUN pip uninstall --yes toxsmi && pip install toxsmi && mkdir -p data
 
 # hack: should be done in base gt4sd
 RUN pip uninstall --yes torch-scatter torch-sparse torch-cluster torch-geometric && \
     pip install --no-index torch-scatter -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html && \
-    pip install --no-index torch-sparse -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html && \ 
+    pip install --no-index torch-sparse -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html && \
     pip install --no-index torch-cluster -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html && \
-    pip install torch-geometric -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html
+    pip install torch-geometric==2.2.0 -f https://pytorch-geometric.com/whl/torch-1.12.0+cpu.html
 
 RUN chmod +x example_pipeline.sh
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 python scripts/load_data.py \
       --uniprot P05067 \
