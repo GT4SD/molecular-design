@@ -54,20 +54,28 @@ def fetch(
     affinity_type: str,
 ) -> Optional[pd.DataFrame]:
     url = f"https://www.bindingdb.org/rest/getLigandsByUniprots?uniprot={uniprot}&cutoff={affinity_cutoff}&response=application/json"
-    response = requests.get(url)
-    assert response.status_code == 200, f"Response {response.status_code}: Failed to fetch data from bindingdb"
+    response = requests.get(url, timeout=60)
+    response.raise_for_status()
 
     data = response.json()
     if 'getLindsByUniprotsResponse' not in data:
         return
     affinities = data["getLindsByUniprotsResponse"]["affinities"]
     df = pd.DataFrame(affinities)
-    df = df[df["affinity_type"] == affinity_type]
-    df = df[["smile", "monomerid", "affinity"]]
+    df = df[df["affinity_type"] == affinity_type].copy()
+    df = df[["smile", "monomerid", "affinity"]].dropna()
+    if df.empty:
+        return df
     df["affinity"] = df["affinity"].apply(utils.str2float)
     df["affinity"] = df["affinity"].apply(utils.nanomolar_to_pic50)
-    assert df["smile"].nunique() == df["monomerid"].nunique(), "ID is not unique"
-    df = df[~df["smile"].duplicated(keep=False)]
+
+    # BindingDB can return multiple assay records and non-unique monomer IDs for
+    # the same molecule. ToxSmi only needs a unique molecule ID, so aggregate
+    # repeated SMILES and assign stable IDs for this downloaded dataset.
+    df = df.groupby("smile", as_index=False)["affinity"].median()
+    df = df.sort_values("smile").reset_index(drop=True)
+    df["monomerid"] = [f"mol_{i}" for i in range(len(df))]
+    df = df[["smile", "monomerid", "affinity"]]
     df = df.reset_index(drop=True)
     return df
 
@@ -75,16 +83,31 @@ def fetch(
 if __name__ == "__main__":
     args = parser.parse_args()
 
+    dataset = None
+    last_error = None
     for attempt in range(args.max_retries):
-        dataset = fetch(args.uniprot, args.affinity_cutoff, args.affinity_type)
-        if dataset is not None:
+        try:
+            dataset = fetch(args.uniprot, args.affinity_cutoff, args.affinity_type)
+        except requests.RequestException as error:
+            last_error = error
+            dataset = None
+            print(f"Attempt {attempt + 1}/{args.max_retries} failed: {error}")
+
+        if dataset is not None and not dataset.empty:
             break
         sleep(5)
 
-    if dataset is None:
-        print(f'BindingDB API does not respond even after {tries} attempts.')
+    if dataset is None or dataset.empty:
+        message = (
+            f"BindingDB returned no usable {args.affinity_type} data for "
+            f"{args.uniprot} after {args.max_retries} attempts."
+        )
+        if last_error is not None:
+            message += f" Last error: {last_error}"
+        raise SystemExit(message)
     else:
         # three files. mols.smi list of all the smiles. Then we have train.csv and val.csv
+        os.makedirs(args.output_dir, exist_ok=True)
         mol_path = os.path.join(args.output_dir, "mols.smi")
         train_path = os.path.join(args.output_dir, "train.csv")
         val_path = os.path.join(args.output_dir, "valid.csv")

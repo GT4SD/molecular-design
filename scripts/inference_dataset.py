@@ -26,7 +26,7 @@ def create_datasets(input_path: str) -> None:
 
     df.to_csv("generated.smi", index=False, header=False, sep="\t")
 
-    n = df["mol_id"].max()
+    n = df["mol_id"].max() + 1
     df_fake = pd.DataFrame({"Label": [0.0] * n, "mol_id": range(n)})
     df_fake = df_fake[["Label", "mol_id"]]
     df_fake.to_csv("dummy_data.csv", index=False)

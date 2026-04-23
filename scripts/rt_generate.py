@@ -92,7 +92,10 @@ def main(smi_path, param_path, output_path):
         # 98% of maximum
         prop_goals = [
             round(
-                max(float(row[k]) + 0.1 * (v[1] - v[0]), v[1] - (0.02 * (v[1] - v[0]))),
+                min(
+                    max(float(row[k]) + 0.1 * (v[1] - v[0]), v[0]),
+                    v[1] - (0.02 * (v[1] - v[0])),
+                ),
                 3,
             )
             for k, v in inference["property_ranges"].items()
