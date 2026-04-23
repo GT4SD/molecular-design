@@ -1,6 +1,7 @@
 import pandas as pd
 import argparse
-from gt4sd.properties import PropertyPredictorRegistry
+
+from helpers.properties import compute_rdkit_properties
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -15,39 +16,19 @@ parser.add_argument(
 
 
 def calc_properties(output_path: str) -> None:
-    # Properties for proteins only.
-    EXCLUDE = [
-        "protein_weight",
-        "boman_index",
-        "charge_density",
-        "charge",
-        "instability",
-        "aliphaticity",
-        "hydrophobicity",
-        "isoelectric_point",
-        "aromaticity",
-    ]
-
-    funcs = {}
-    for p in PropertyPredictorRegistry.list_available():
-        if p in EXCLUDE:
-            continue
-        try:
-            funcs[p] = PropertyPredictorRegistry.get_property_predictor(p)
-        except:
-            pass
-
     mols = pd.read_csv(args.smi_path)
-    smiles = mols[["SMILES"]]
+    smiles = mols[["SMILES"]].copy()
     if "Prediction" in mols.columns:
         smiles["IC50"] = mols["Prediction"]
     elif "pred_0" in mols.columns:
         smiles["IC50"] = mols["pred_0"]
-    for p in funcs:
-        try:
-            smiles[p] = mols["SMILES"].apply(funcs[p])
-        except:
-            print(f"[!] Could not calculate property '{p}'")
+
+    props = mols["SMILES"].apply(
+        lambda smiles_value: pd.Series(
+            compute_rdkit_properties(smiles_value), dtype="float64"
+        )
+    )
+    smiles = pd.concat([smiles, props], axis=1)
 
     smiles.to_csv(output_path, index=False)
 

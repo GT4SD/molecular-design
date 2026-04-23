@@ -1,6 +1,7 @@
 import pandas as pd
 import argparse
-from gt4sd.properties import PropertyPredictorRegistry
+
+from helpers.properties import qed_from_smiles
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -12,9 +13,8 @@ parser.add_argument(
 
 
 def calc_properties(output_path: str) -> None:
-    qed = PropertyPredictorRegistry.get_property_predictor("qed")
     df = pd.read_csv(args.smi_path)
-    df["<qed>"] = df["SMILES"].apply(qed)
+    df["<qed>"] = df["SMILES"].apply(qed_from_smiles)
     df.to_csv(output_path, index=False)
 
 
