@@ -357,7 +357,7 @@ def main(
         train_loss = 0
 
         for ind, (smiles, y) in enumerate(train_loader):
-            smiles = torch.squeeze(smiles.to(device))
+            smiles = smiles.to(device).squeeze(-1)
             # Transform smiles to FP if needed
             if params.get("model_fn", "mca") == "dense":
                 smiles = smiles_tensor_batch_to_fp(smiles).to(device)
@@ -385,7 +385,7 @@ def main(
             predictions = []
             labels = []
             for ind, (smiles, y) in enumerate(test_loader):
-                smiles = torch.squeeze(smiles.to(device))
+                smiles = smiles.to(device).squeeze(-1)
                 # Transform smiles to FP if needed
                 if params.get("model_fn", "mca") == "dense":
                     smiles = smiles_tensor_batch_to_fp(smiles).to(device)
