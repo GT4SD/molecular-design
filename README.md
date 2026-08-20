@@ -1,27 +1,61 @@
- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
- [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CI Pipeline](https://github.com/GT4SD/molecular-design/actions/workflows/ci.yml/badge.svg)](https://github.com/GT4SD/molecular-design/actions/workflows/ci.yml)
 
-# AI For Target Based Drug Design
+# AI for Target-Based Molecular Design
 
-The code in this repo aims to provide a complete computational pipeline for target-based molecular design. It consists of seven steps that runs several state-of-the-art deep learning models:
-1. Installation
-2. Train a virtual screening model
-3. Generate molecules iteratively, filtered automatically by the screening model
-4. Optimize molecules 
-5. Filter the optimized molecules
-6. Compute further physiochemical properties for manual inspection
-7. Create synthesis routes for best candidates
+This repository implements the computational core of a target-based molecular
+discovery workflow. Starting from target-specific activity data, it trains a
+SMILES-based virtual-screening model, generates and optimizes candidate
+molecules, re-scores and characterizes them, and proposes retrosynthetic routes
+for the selected compounds.
+
+The workflow connects the following stages:
+
+1. retrieve `IC50` or `Kd` measurements from BindingDB, or supply custom data;
+2. train a target-specific [ToxSmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+   predictor;
+3. perform scaffold- and motif-conditioned generation with
+   [MoLeR](https://github.com/microsoft/molecule-generation), iteratively retaining
+   candidates that pass the ToxSmi threshold;
+4. optimize molecular structure and QED with the
+   [Regression Transformer](https://www.nature.com/articles/s42256-023-00639-z);
+5. re-score the optimized molecules with the trained ToxSmi checkpoint;
+6. calculate physicochemical descriptors for candidate prioritization; and
+7. submit selected candidates to IBM RXN for retrosynthetic analysis.
+
+## Used in autonomous closed-loop molecular discovery
+
+> **This pipeline was used for the molecular-design component of
+> [*Toward fully autonomous closed-loop molecular discovery – A case study on
+> JAK targets*](https://doi.org/10.26434/chemrxiv-2026-q7xdt) (ChemRxiv, 2026).**
+
+In that JAK-family case study, the computational workflow was connected to
+IBM's RoboRXN synthesis automation and Arctoris' Ulysses automated *in vitro*
+screening platform. The study reports two Design-Make-Test-Analyze (DMTA)
+cycles and 36 synthesized compounds. Candidates from the second cycle had
+significantly improved pIC50 and ligand efficiency relative to the first cycle
+(`p < 0.001`).
+
+This repository provides the reusable data preparation, predictive modeling,
+molecular generation, *in silico* filtering, property calculation, and
+retrosynthesis stages. RoboRXN orchestration, Ulysses assay automation, and the
+physical experimental stages reported in the paper are external to this
+repository; consequently, the commands below document the computational
+pipeline rather than a one-command reproduction of the full experimental
+campaign.
 
 <p align="center">
-    <img src="./assets//cycle.jpg" alt="logo" width="400" />
+    <img src="./assets/cycle.jpg" alt="Molecular-design workflow" width="400" />
 </p>
 
-## 1 - Setup
+## 1 — Setup
+
 <img src="assets/gt4sd.png" width="75" height="75" align="right" />
 
-### 1a - Install [GT4SD](https://github.com/GT4SD/gt4sd-core) 
-First we set up the environment.
+### 1a — Install [GT4SD](https://github.com/GT4SD/gt4sd-core)
+
+Create and activate the GT4SD environment:
 
 ```bash
 git clone https://github.com/GT4SD/gt4sd-core.git
@@ -32,11 +66,17 @@ conda activate gt4sd
 pip install gt4sd
 pip uninstall --yes toxsmi && pip install toxsmi
 ```
-For details on GT4SD see the [paper](https://www.nature.com/articles/s41524-023-01028-1).
 
-### 1b - Optional download of affinity data from [BindingDB](https://www.bindingdb.org/bind/BindingDBRESTfulAPI.jsp)
-NOTE: If you have custom data for your target, you can skip this step. But it may be useful to run it to (1) see the required data format and (2) augment your custom data.
-Example of retrieving binding data for UniProt target P05067 (kinase):
+For architectural and model details, see the
+[GT4SD paper](https://www.nature.com/articles/s41524-023-01028-1).
+
+### 1b — Prepare affinity data
+
+If you already have target-specific measurements, provide them using the file
+contracts below. Otherwise, `load_data.py` can retrieve data from the
+[BindingDB REST API](https://www.bindingdb.org/bind/BindingDBRESTfulAPI.jsp).
+For example:
+
 ```bash
 python scripts/load_data.py \
     --uniprot P05067 \
@@ -47,11 +87,28 @@ python scripts/load_data.py \
     --binary_labels
 ```
 
-## 2 - Train the virtual screening model [ToxSmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+The loader keeps records matching `--affinity_type`, drops incomplete rows,
+converts nanomolar measurements to pAffinity, takes the median when BindingDB
+contains repeated measurements for the same SMILES, and performs a reproducible
+train/validation split (`random_state=1911`). With `--binary_labels`, values
+above pAffinity 6 are assigned to the positive class.
 
-Assuming the data sets reside in the `data` folder either by running the step above or symlinking your own datasets,
-you can start the training with the following command:
-```
+It writes:
+
+- `data/mols.smi`: tab-separated `SMILES` and `mol_id`, without a header;
+- `data/train.csv`: `Label,sampling_frequency,mol_id`; and
+- `data/valid.csv`: the same schema as the training file.
+
+The accession and settings above are an illustrative example, not the exact JAK
+study configuration. For a custom dataset, preserve these schemas and ensure
+that every `mol_id` in the label files occurs in the `.smi` file.
+
+## 2 — Train the virtual-screening model with [ToxSmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+
+Train ToxSmi after generating the files above or linking compatible custom data
+into `data/`:
+
+```bash
 python scripts/train_toxsmi.py \
     --train data/train.csv \
     --test data/valid.csv \
@@ -61,166 +118,199 @@ python scripts/train_toxsmi.py \
     --model models \
     --name toxsmi_model
 ```
-To change the batch size, number of epochs, etc., see `config/toxsmi_conf.json`.
-For detailse, see the [ToxSmi paper](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g).
 
-## 3 - Generate molecules with [MoLeR](https://github.com/microsoft/molecule-generation)
-This step uses an iterative procedure combining a substructure-driven generative model (MoLeR) with the previously trained virtual screening model (ToxSmi) to produce a set of candidate molecules with high predicted binding affinity.
+The default [`config/toxsmi_conf.json`](config/toxsmi_conf.json) specifies a
+multi-convolution attention model with a learned 256-dimensional SMILES
+embedding, convolution kernels of 3, 5, 11, and 17 tokens, five score-ensemble
+members, SMILES augmentation during training, and canonical SMILES at
+validation time. It uses binary cross-entropy for the binary labels generated
+in Step 1. Adjust the task, training length, batch size, and architecture in
+that file for the target and dataset at hand. Model parameters, the serialized
+tokenizer, weights, and evaluation results are written beneath
+`models/toxsmi_model/`.
 
-NOTE: MoLeR is a *local* generative model, thus `good_docks.smi` gives you a way to condition the generative process. You can place their molecules with moieties that you would like to see in the final molecule. Or you take the best molecules from the affinity data that you have (see Step 1b). If you dont want to bias the model in any direction, we recommend to pass a large `.smi` file (>1000 molecules) with diverse chemical structures.
+See the [ToxSmi paper](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
+for the model architecture and representation-learning methodology.
 
-Here is an example of using the first five molecules:
+## 3 — Generate and filter molecules with [MoLeR](https://github.com/microsoft/molecule-generation)
+
+This stage combines the substructure-driven MoLeR generator with the trained
+ToxSmi predictor. For every iteration, the script extracts scaffolds and
+structural motifs from the current seed pool, samples molecules conditioned on
+those substructures, canonicalizes the generated SMILES, requires at least one
+aromatic ring, and retains candidates whose predictor score is greater than
+`theta`. Passing candidates are added to the seed pool for the next iteration.
+
+MoLeR is locally conditioned, so the contents of `good_docks.smi` determine the
+scaffolds and motifs emphasized by generation. Use selected active compounds
+when those substructures should be preserved. To reduce seed bias, provide a
+large and structurally diverse seed set instead. The input is a headerless,
+tab-separated file whose first column contains SMILES.
+
+For a minimal example, select the first five molecules from Step 1:
+
 ```bash
-head -n 5 data/mols.smi > data/good_docks.smi 
+head -n 5 data/mols.smi > data/good_docks.smi
 ```
 
-We generate molecules using the following command:
-```
+Generate and filter candidates:
+
+```bash
 python scripts/moler_generate_toxsmi.py \
     --smi_path data/good_docks.smi \
     --param_path config/moler_conf.json \
     --output_path data/moler_filtered \
     --predictor_path models/toxsmi_model/weights/best_F1.pt
 ```
-where `best_F1.pt` is the weights of the best ToxSmi model.
 
-To change the threshold, number of iterations, etc,. see `config/moler_conf.json`.
-For details, read the [MoLeR paper](https://arxiv.org/abs/2103.03864).
+Here, `best_F1.pt` is the selected ToxSmi checkpoint. Configuration options in
+[`config/moler_conf.json`](config/moler_conf.json) include the number of
+molecules collected per iteration before filtering, number of iterations, beam
+and sample sizes, sampling noise (`max_sigma`), and predictor threshold
+(`theta`). The checked-in values are intentionally small and are suitable for
+exercising the workflow, not for a production discovery campaign. The unique
+candidates are ranked by their ToxSmi `Label` and written to
+`data/moler_filtered/generated.csv`.
 
-## 4 - Generate more diverse molecules with [Regression Transformer](https://www.nature.com/articles/s42256-023-00639-z)
-This step refines and optimizes the generated molecules from MoLeR in order to be more drug-like.
+For model details, read the [MoLeR paper](https://arxiv.org/abs/2103.03864).
 
-Generate the dataset
+## 4 — Optimize molecules with the [Regression Transformer](https://www.nature.com/articles/s42256-023-00639-z)
+
+First, calculate QED for every MoLeR candidate. This adds the property token
+column `<qed>` expected by the QED-conditioned Regression Transformer:
+
 ```bash
 python scripts/prepare_rt_data.py \
     --smi_path data/moler_filtered/generated.csv \
-    --output_path data/moler_filtered/generated_qed.csv 
+    --output_path data/moler_filtered/generated_qed.csv
 ```
-```
+
+Then run property-conditioned generation:
+
+```bash
 python scripts/rt_generate.py \
     --smi_path data/moler_filtered/generated_qed.csv \
     --param_path config/rt_conf.json \
     --output_path data/rt
 ```
 
-To change the batch size, tolerance, etc., see `config/rt_conf.json`.
-For details, read the [Regression Transformer paper](https://www.nature.com/articles/s42256-023-00639-z).
+For each seed, the script masks a random fraction of its representation and
+requests a QED increase equal to 10% of the model's supported property range,
+capped at 98% of the upper bound. It de-duplicates the results and retains
+aromatic molecules. Control the maximum masked fraction, sampling temperature,
+tolerance, batch size, and optional decoration mode in
+[`config/rt_conf.json`](config/rt_conf.json). The command above writes
+`data/rt/qed_rt_conf_generated_qed/generated.csv`; the directory name is derived
+from the model version, configuration filename, and input filename.
 
-## 5 - Run inference with [Toxsmi](https://pubs.rsc.org/en/content/articlehtml/2023/dd/d2dd00099g)
-After generating a more diverse set of molecules, we screen the newly generated molecules with ToxSmi.
-First we structure the input dataset by running:
-```
+For methodological details, read the
+[Regression Transformer paper](https://www.nature.com/articles/s42256-023-00639-z).
+
+## 5 — Re-score optimized molecules with ToxSmi
+
+Convert the Regression Transformer output into the two files expected by the
+ToxSmi inference loader:
+
+```bash
 python scripts/inference_dataset.py -i data/rt/qed_rt_conf_generated_qed/generated.csv
 ```
-This generates `dummy_data.csv` and `generated.smi`. Run the inference:
-```
+
+This writes `generated.smi` and `dummy_data.csv` in the current directory. The
+dummy labels satisfy the annotated-dataset interface and are not experimental
+measurements. Run inference using the desired checkpoint:
+
+```bash
 python scripts/test_toxsmi.py \
     --model_path models/toxsmi_model \
     --smi_filepath generated.smi \
     --label_filepath dummy_data.csv \
     --checkpoint_name F1
 ```
-this results in `models/toxsmi_model/results/dummy_data_F1_results_flat.csv` which contain the predictions.
 
-## 6 - Computing properties with GT4SD
-To ease postprocessing and manual inspection, we compute various physicochemical properties (logP, weight, rings counts, drug-likeness) with GT4SD.
+The checkpoint selector matches a filename containing `F1`. Predictions are
+written to
+`models/toxsmi_model/results/dummy_data_F1_results_flat.csv`, with one row per
+molecule and task. Pass `--confidence` to additionally calculate epistemic
+confidence by Monte Carlo dropout and aleatoric confidence by test-time SMILES
+augmentation.
+
+## 6 — Compute physicochemical properties
+
+Calculate RDKit descriptors for ranking and manual review:
+
 ```bash
 python scripts/mol_properties.py \
     --smi_path models/toxsmi_model/results/dummy_data_F1_results_flat.csv \
-    --output_path mol_props.csv 
+    --output_path mol_props.csv
 ```
 
-## 7 - Retrosynthesis with [IBM RXN for Chemistry](https://rxn.app.accelerate.science/)
-Last, to ease wet-lab synthesis, we use [IBM RXN for Chemistry](https://rxn.app.accelerate.science/) to predict potential synthesis routes for each candidate molecule.
+The output retains `SMILES`, copies the model `Prediction` into `IC50`, and adds
+molecular weight, logP, QED, topological polar surface area, hydrogen-bond donor
+and acceptor counts, rotatable bonds, total and aromatic ring counts, and heavy
+atom count. Despite the legacy `IC50` output-column name, its value has the same
+semantics as the trained model's prediction; verify whether that model is a
+classifier or regressor before interpreting it as an affinity.
+
+## 7 — Retrosynthesis with [IBM RXN for Chemistry](https://rxn.app.accelerate.science/)
+
+Use IBM RXN to propose retrosynthetic routes for the highest-priority
+candidates:
 
 ```bash
 pip install rxn4chemistry
 ```
 
-A free API key can be generated at [RXN](https://rxn.app.accelerate.science/) by creating an account.
-To run the retrosynthesis a `project_id` is also needed. After you created a project on the webapp, the
-ID can be extracted from the url, which may look like this:
+Create an RXN account and project, then obtain an API key. The project ID is the
+value in a dashboard URL of the form:
 `https://rxn.app.accelerate.science/rxn/projects/<project_id_is_here>/test/dashboard`.
 
-Since retrosynthesis is time consuming, it is recommended to rank your molecules and only retrosynthesize the  `top_n` ranked molecules.
-Here is an example of taking the first molecule
+Retrosynthesis is comparatively expensive, so rank the candidates first and
+submit only the desired top set. The following command keeps the CSV header and
+first candidate:
+
 ```bash
 head -n 2 data/rt/qed_rt_conf_generated_qed/generated.csv > selected_for_retro.csv
 ```
 
 ```bash
-API_KEY=<your API key here>
-PROJ_ID=<your project id here>
+API_KEY="your-api-key"
+PROJ_ID="your-project-id"
 python scripts/retrosynthesis.py selected_for_retro.csv \
---api_key $API_KEY \
---project_id $PROJ_ID \
---steps 4 \
---timeout 100 \
---name my_retrosynthesis
+    --api_key "$API_KEY" \
+    --project_id "$PROJ_ID" \
+    --steps 4 \
+    --timeout 100 \
+    --name my_retrosynthesis
 ```
 
-For further information on RXN's retrosynthesis models see [Schwaller et al. (2020)](https://pubs.rsc.org/en/content/articlehtml/2020/sc/c9sc05704h) and [Zipoli et al. (2024)](https://www.nature.com/articles/s41524-024-01290-x).
+The script submits each row's `SMILES`, requests routes with the selected search
+depth and beam count, and stores one JSON response per molecule under
+`results/selected_for_retro/`. Existing result files are not submitted again.
+For further information on RXN's retrosynthesis models, see
+[Schwaller et al. (2020)](https://pubs.rsc.org/en/content/articlehtml/2020/sc/c9sc05704h)
+and
+[Zipoli et al. (2024)](https://www.nature.com/articles/s41524-024-01290-x).
 
+The full illustrative sequence is also available in
+[`example_pipeline.sh`](example_pipeline.sh). Set `API_KEY` and `PROJ_ID` before
+running its retrosynthesis stage.
 
-## Citations
+## Citation
 
-If you're using the code here, please cite the papers that are part of this pipeline
+If you use this pipeline, please cite the paper in which it was applied:
+
 ```bib
-@article{manica2023accelerating,
-  title={Accelerating material design with the generative toolkit for scientific discovery},
-  author={Manica, Matteo and Born, Jannis and Cadow, Joris and Christofidellis, Dimitrios and Dave, Ashish and Clarke, Dean and Teukam, Yves Gaetan Nana and Giannone, Giorgio and Hoffman, Samuel C and Buchan, Matthew and others},
-  journal={npj Computational Materials},
-  volume={9},
-  number={1},
-  pages={69},
-  year={2023},
-  publisher={Nature Publishing Group UK London}
-}
-@article{born2023regression,
-  title={Regression transformer enables concurrent sequence regression and generation for molecular language modelling},
-  author={Born, Jannis and Manica, Matteo},
-  journal={Nature Machine Intelligence},
-  volume={5},
-  number={4},
-  pages={432--444},
-  year={2023},
-  publisher={Nature Publishing Group UK London}
-}
-@article{born2023chemical,
-    title={Chemical representation learning for toxicity prediction},
-    author={Born, Jannis and Markert, Greta and Janakarajan, Nikita and Kimber, Talia B and Volkamer, Andrea and Mart{\'\i}nez, Mar{\'\i}a Rodr{\'\i}guez and Manica, Matteo},
-    journal={Digital Discovery},
-    volume={2},
-    number={3},
-    pages={674--691},
-    year={2023},
-    publisher={Royal Society of Chemistry}
-}
-@inproceedings{maziarz2022learning,
-    title={Learning to Extend Molecular Scaffolds with Structural Motifs},
-    author={Krzysztof Maziarz and Henry Richard Jackson-Flux and Pashmina Cameron and Finton Sirockin and Nadine Schneider and Nikolaus Stiefl and Marwin Segler and Marc Brockschmidt},
-    booktitle={International Conference on Learning Representations},
-    year={2022},
-    url={https://openreview.net/forum?id=ZTsoE8G3GG}
-}
-@article{zipoli2024growing,
-  title={Growing strings in a chemical reaction space for searching retrosynthesis pathways},
-  author={Zipoli, Federico and Baldassari, Carlo and Manica, Matteo and Born, Jannis and Laino, Teodoro},
-  journal={npj Computational Materials},
-  volume={10},
-  number={1},
-  pages={101},
-  year={2024},
-  publisher={Nature Publishing Group UK London}
-}
-@article{schwaller2020predicting,
-  title={Predicting retrosynthetic pathways using transformer-based models and a hyper-graph exploration strategy},
-  author={Schwaller, Philippe and Petraglia, Riccardo and Zullo, Valerio and Nair, Vishnu H and Haeuselmann, Rico Andreas and Pisoni, Riccardo and Bekas, Costas and Iuliano, Anna and Laino, Teodoro},
-  journal={Chemical science},
-  volume={11},
-  number={12},
-  pages={3316--3325},
-  year={2020},
-  publisher={Royal Society of Chemistry}
+@article{born2026toward,
+  title = {Toward fully autonomous closed-loop molecular discovery -- A case study on {JAK} targets},
+  author = {Born, Jannis and Baldassari, Carlo and Grabocka, Doriela and
+            Cardinale, Antonio and Schilter, Oliver and Castrogiovanni, Alessandro and
+            Leonov, Artem and Skogh, Filip and Singh, Jeeven and Xiong, Yaoyao and
+            Evans, John and Fleming, Thomas and Laino, Teodoro and Manica, Matteo},
+  year = {2026},
+  month = jan,
+  publisher = {American Chemical Society (ACS)},
+  doi = {10.26434/chemrxiv-2026-q7xdt},
+  url = {https://doi.org/10.26434/chemrxiv-2026-q7xdt},
+  note = {ChemRxiv preprint}
 }
 ```
