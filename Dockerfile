@@ -2,6 +2,8 @@
 #FROM drugilsberg/gt4sd-base:v1.4.2-cpu
 FROM quay.io/gt4sd/gt4sd-base:v1.5.0-cpu
 
+# Since there is no v1.5.1 base-image tag, we upgrade GT4SD in place.
+RUN pip install --no-deps --no-cache-dir gt4sd==1.5.1
 
 # Certs for git clone
 RUN apt-get update && \
